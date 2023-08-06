@@ -1,0 +1,116 @@
+openapi: "3.0.1"
+info:
+  title: "Comments API"
+  description: "Comments API for Gateway-DynamoDB SAM Tutorial"
+  version: "2021-12-12T20:20:06Z"
+servers:
+- url: "https://ubqqu9m585.execute-api.eu-north-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "/Prod"
+paths:
+  /comments/{pageId}:
+    get:
+      parameters:
+      - name: "pageId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentsRetrieveResponse"
+      x-amazon-apigateway-integration:
+        credentials:
+          Fn::GetAtt: APIGatewayRole.Arn
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/Query"
+        responses:
+          default:
+            statusCode: "200"
+            responseTemplates:
+              application/json: "#set($inputRoot = $input.path('$'))\r\n{\r\n    \"\
+                comments\": [\r\n        #foreach($elem in $inputRoot.Items) {\r\n\
+                \            \"commentId\": \"$elem.commentId.S\",\r\n           \
+                \ \"userName\": \"$elem.userName.S\",\r\n            \"message\":\
+                \ \"$elem.message.S\"\r\n        }#if($foreach.hasNext),#end\r\n\t\
+                #end\r\n    ]\r\n}"
+        requestTemplates:
+          application/json:
+            Fn::Sub: "{\r\n  \"TableName\": \"${CommentsTable}\",\r\n  \"IndexName\"\
+            : \"pageId-index\",\r\n  \"KeyConditionExpression\": \"pageId = :v1\"\
+            ,\r\n  \"ExpressionAttributeValues\": {\r\n    \":v1\": {\r\n      \"\
+            S\": \"$input.params('pageId')\"\r\n    }\r\n  }\r\n}"
+        passthroughBehavior: "when_no_templates"
+        type: "aws"
+  /comments:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: "Comment Created Successfully"
+          content: {}
+      x-amazon-apigateway-request-validator: "Validate body"
+      x-amazon-apigateway-integration:
+        credentials:
+          Fn::GetAtt: APIGatewayRole.Arn
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/PutItem"
+        responses:
+          default:
+            statusCode: "201"
+        requestTemplates:
+          application/json:
+            Fn::Sub: "{ \r\n    \"TableName\": \"${CommentsTable}\",\r\n    \"Item\"\
+            : {\r\n\t\"commentId\": {\r\n            \"S\": \"$context.requestId\"\
+            \r\n            },\r\n        \"pageId\": {\r\n            \"S\": \"$input.path('$.pageId')\"\
+            \r\n            },\r\n        \"userName\": {\r\n            \"S\": \"\
+            $input.path('$.userName')\"\r\n        },\r\n        \"message\": {\r\n\
+            \            \"S\": \"$input.path('$.message')\"\r\n        }\r\n    }\r\
+            \n}"
+        passthroughBehavior: "when_no_templates"
+        type: "aws"
+components:
+  schemas:
+    CommentCreateRequest:
+      required:
+        - "message"
+        - "pageId"
+        - "userName"
+      type: "object"
+      properties:
+        userName:
+          type: "string"
+        message:
+          type: "string"
+        pageId:
+          type: "string"
+    CommentsRetrieveResponse:
+      required:
+        - "comments"
+      type: "object"
+      properties:
+        comments:
+          type: "object"
+          properties:
+            commentId:
+              type: "string"
+            userName:
+              type: "string"
+            message:
+              type: "string"
+x-amazon-apigateway-request-validators:
+  Validate body:
+    validateRequestParameters: false
+    validateRequestBody: true

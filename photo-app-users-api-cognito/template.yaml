@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  photo-app-users-api-cognito
+
+  Sample SAM Template for photo-app-users-api-cognito
+
+Globals:
+  Function:
+    Timeout: 20
+    Runtime: java11
+    Architectures:
+      - x86_64
+    MemorySize: 512
+    Environment:
+      Variables:
+        MY_COGNITO_POOL_APP_CLIENT_ID: AQICAHhJFGAnVhYAPnsHwblpOqU1qgM5vu37AIZk+pkNU6kxSgEOdmcInSOeEJFRwg6bX5+uAAAAeDB2BgkqhkiG9w0BBwagaTBnAgEAMGIGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM8bRcguOpqwruQsfKAgEQgDUCPqxl4R1rLQYiwZ8+ymGxgdxZoUlx6iuTRpHivrtSKf3DT4SuWF+uR2ZCUtSNnkpnUKS2lQ==
+        MY_COGNITO_POOL_APP_CLIENT_SECRET: AQICAHhJFGAnVhYAPnsHwblpOqU1qgM5vu37AIZk+pkNU6kxSgGazNuI/AZar7L1Ojlo42vVAAAAlTCBkgYJKoZIhvcNAQcGoIGEMIGBAgEAMHwGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMvPc3xnWGNPyegfqkAgEQgE/wvYnEJsjB3I7S2RE7LMYRcdcOwY+gzvtPzAI5Hinfkr3CLGR0tZaO9W1k0FkwGGGMoQO/EENY+eIzibWfuyzjYnqpFVe0fNAV7V0wp7s2
+        MY_COGNITO_POOL_ID: eu-north-1_2ZKDZLmj4
+
+Resources:
+  CreateUserHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PhotoAppUsersApiCognito/lambdas/target/lambdas-1.0.jar
+      Handler: net.shyshkin.study.aws.serverless.cognito.CreateUserHandler::handleRequest
+      Layers:
+        - !Ref LambdaCoreLayer
+        - !Ref LoggingLayer
+        - !Ref MappingLayer
+        - !Ref CognitoSdkLayer
+        - !Ref KmsSdkLayer
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /users
+            Method: post
+
+  ConfirmUserHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PhotoAppUsersApiCognito/lambdas/target/lambdas-1.0.jar
+      Handler: net.shyshkin.study.aws.serverless.cognito.ConfirmUserHandler::handleRequest
+      Layers:
+        - !Ref LambdaCoreLayer
+        - !Ref LoggingLayer
+        - !Ref MappingLayer
+        - !Ref CognitoSdkLayer
+        - !Ref KmsSdkLayer
+      Events:
+        ConfirmUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /confirm
+            Method: post
+
+  LoginUserHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PhotoAppUsersApiCognito/lambdas/target/lambdas-1.0.jar
+      Handler: net.shyshkin.study.aws.serverless.cognito.LoginUserHandler::handleRequest
+      Layers:
+        - !Ref LambdaCoreLayer
+        - !Ref LoggingLayer
+        - !Ref MappingLayer
+        - !Ref CognitoSdkLayer
+        - !Ref KmsSdkLayer
+      Events:
+        LoginUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /login
+            Method: post
+
+  AddUserToGroupHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PhotoAppUsersApiCognito/lambdas/target/lambdas-1.0.jar
+      Handler: net.shyshkin.study.aws.serverless.cognito.AddUserToGroupHandler::handleRequest
+      Layers:
+        - !Ref LambdaCoreLayer
+        - !Ref LoggingLayer
+        - !Ref MappingLayer
+        - !Ref CognitoSdkLayer
+        - !Ref KmsSdkLayer
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'cognito-idp:AdminAddUserToGroup'
+              Resource: "arn:aws:cognito-idp:eu-north-1:392971033516:userpool/eu-north-1_2ZKDZLmj4"
+      Events:
+        AddUserToGroup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /users/{userName}/add-to-group
+            Method: post
+
+  GetUserHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PhotoAppUsersApiCognito/lambdas/target/lambdas-1.0.jar
+      Handler: net.shyshkin.study.aws.serverless.cognito.GetUserHandler::handleRequest
+      Layers:
+        - !Ref LambdaCoreLayer
+        - !Ref LoggingLayer
+        - !Ref MappingLayer
+        - !Ref CognitoSdkLayer
+        - !Ref KmsSdkLayer
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /users/me
+            Method: get
+
+  LambdaCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: PhotoAppUsersApiCognito/layers/lambda-core-layer/target/lambda-core-layer.zip
+      CompatibleRuntimes:
+        - java11
+
+  LoggingLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: PhotoAppUsersApiCognito/layers/logging-layer/target/logging-layer.zip
+      CompatibleRuntimes:
+        - java11
+
+  MappingLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: PhotoAppUsersApiCognito/layers/mapping-layer/target/mapping-layer.zip
+      CompatibleRuntimes:
+        - java11
+
+  CognitoSdkLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: PhotoAppUsersApiCognito/layers/cognito-sdk-layer/target/cognito-sdk-layer.zip
+      CompatibleRuntimes:
+        - java11
+
+  KmsSdkLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: PhotoAppUsersApiCognito/layers/kms-sdk-layer/target/kms-sdk-layer.zip
+      CompatibleRuntimes:
+        - java11
+
+  MyRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: Photo App Users API
+      Description: Photo App Users API with Cognito (API Gateway)
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: photo-app-users-api-cognito-stack-Prod-oas30-apigateway.yaml
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  CreateUserApi:
+    Description: "API Gateway endpoint URL for Prod stage for Create User Handler function"
+    Value: !Sub "https://${MyRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/users"
+  ConfirmUserApi:
+    Description: "API Gateway endpoint URL for Prod stage for Confirm User Handler function"
+    Value: !Sub "https://${MyRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/confirm"
+  CreateUserHandlerFunction:
+    Description: "CreateUserHandler Lambda Function ARN"
+    Value: !GetAtt CreateUserHandlerFunction.Arn
+  CreateUserHandlerFunctionIamRole:
+    Description: "Implicit IAM Role created for CreateUserHandler function"
+    Value: !GetAtt CreateUserHandlerFunctionRole.Arn

@@ -1,0 +1,25 @@
+### Create new comment
+POST    https://tvhnmtbue4.execute-api.eu-north-1.amazonaws.com/Prod/comments
+Content-Type: application/json
+Accept: application/json
+
+{
+  "pageId":   "one-cool-news",
+  "userName": "The great author {{$randomInt}}",
+  "message":  "I really enjoyed this story! {{$uuid}}"
+}
+
+###  Get comments for {pageId}
+GET    https://tvhnmtbue4.execute-api.eu-north-1.amazonaws.com/Prod/comments/one-cool-news
+Accept: application/json
+
+### Create new comment - validation fail
+POST    https://tvhnmtbue4.execute-api.eu-north-1.amazonaws.com/Prod/comments
+Content-Type: application/json
+Accept: application/json
+
+{
+  "pageId":   "one-cool-news",
+  "message":  "I really enjoyed this story! {{$uuid}}"
+}
+

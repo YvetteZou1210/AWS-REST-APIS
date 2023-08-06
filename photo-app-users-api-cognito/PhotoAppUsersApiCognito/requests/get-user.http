@@ -1,0 +1,39 @@
+### Login first
+POST https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/login
+Content-Type: application/json
+
+{
+  "email":"kateshyshkina@mailinator.com",
+  "password":"12345678"
+}
+
+> {%
+client.global.set("idToken", response.body.idToken);
+client.global.set("accessToken", response.body.accessToken);
+%}
+
+### Get User - Correct
+GET https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/users/me
+Content-Type: application/json
+Authorization: Bearer {{idToken}}
+AccessToken: {{accessToken}}
+
+### Get User - Without Any Tokens
+GET https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/users/me
+Content-Type: application/json
+
+### Get User - Without Id Token
+GET https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/users/me
+Content-Type: application/json
+AccessToken: {{accessToken}}
+
+### Get User - Without Access Token
+GET https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/users/me
+Content-Type: application/json
+Authorization: Bearer {{idToken}}
+
+### Get User - Wrong Access Token
+GET https:// w9ftu2qts5.execute-api.eu-north-1.amazonaws.com/Prod/users/me
+Content-Type: application/json
+Authorization: Bearer {{idToken}}
+AccessToken: eyJraYvL8bUw

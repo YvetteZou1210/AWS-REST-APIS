@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  gateway-dynamodb
+
+  Sample SAM Template for gateway-dynamodb
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+
+Resources:
+
+  CommentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+#      TableName: CommentsSAM
+      # A list of attributes that describe the key schema for the DynamoDB table and indexes.
+      AttributeDefinitions:
+        - AttributeName: commentId
+          AttributeType: S
+        - AttributeName: pageId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: commentId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      GlobalSecondaryIndexes:
+        - IndexName: pageId-index
+          KeySchema:
+            - AttributeName: pageId
+              KeyType: HASH
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - pageId
+              - userName
+              - message
+          ProvisionedThroughput:
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
+
+  CommentsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: Comments API
+      Description: Comments API for Gateway-DynamoDB SAM Tutorial
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: Comments API-Prod-oas30-apigateway.yaml
+
+      MethodSettings:
+        - ResourcePath: /comments
+          HttpMethod: POST
+          CachingEnabled: false
+        - ResourcePath: /comments/{pageId}
+          HttpMethod: GET
+          CachingEnabled: false
+
+  APIGatewayRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Policies:
+        - PolicyName: APIGatewayDynamoDBPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Query'
+                # Including * in the resource Arn allows access to the DynamoDB table and indexes
+                Resource: !Sub
+                  - '${varTableArn}*'
+                  - varTableArn: !GetAtt CommentsTable.Arn
+
+Outputs:
+  CommentsApi:
+    Description: "API Gateway endpoint URL for Prod stage for Comments API"
+    Value: !Sub "https://${CommentsApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/comments/{pageId}"
+  DatabaseName:
+    Description: "Name of Comments Table"
+    Value: !Ref CommentsTable
